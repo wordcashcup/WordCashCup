@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WORD CASH CUP – Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Inline&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --pink:   #e91fcb;
+      --pink2:  #c4179e;
+      --cyan:   #3dd6f5;
+      --yellow: #f5e642;
+      --gold:   #ffd700;
+      --silver: #c0c0c0;
+      --bronze: #cd7f32;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Barlow Condensed', sans-serif;
+      min-height: 100vh;
+      /* fondo rosa/magenta → cyan igual que Fortnite */
+      background: linear-gradient(118deg, #d91abf 0%, #c418b0 20%, #7a5de8 55%, #4ab8f7 80%, #3dd6f5 100%);
+      position: relative;
+    }
+
+    /* triángulo morado diagonal */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: linear-gradient(135deg,
+        transparent 35%,
+        rgba(110,40,190,0.6) 35%,
+        rgba(90,20,170,0.7) 65%,
+        transparent 65%
+      );
+    }
+
+    .wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+    .title-block h1 { font-family: 'Bungee Inline', cursive; font-size: clamp(2.2rem,5vw,4rem); color: #fff; text-shadow: 3px 3px 0 rgba(0,0,0,.25); }
+    .title-block .sub { font-family: 'Bungee', cursive; font-size: clamp(.9rem,2vw,1.3rem); color: var(--yellow); letter-spacing: 3px; margin-top: 6px; display: block; }
+    .header-right { display: flex; gap: 12px; align-items: center; }
+    .live-badge { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.6); border-radius: 8px; padding: 8px 18px; font-weight: 700; font-size: 1rem; letter-spacing: 2px; color: #fff; }
+    .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px #fff; animation: blink 1.2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+    .refresh-btn { background: rgba(255,255,255,.2); border: 2px solid rgba(255,255,255,.5); border-radius: 8px; padding: 8px 16px; color: #fff; font-family: 'Bungee', cursive; font-size: .9rem; cursor: pointer; transition: background .2s; }
+    .refresh-btn:hover { background: rgba(255,255,255,.35); }
+
+    .controls { display: flex; margin-bottom: 22px; }
+    .search-box { flex: 1; background: rgba(255,255,255,.2); border: 2px solid rgba(255,255,255,.5); border-radius: 10px; padding: 9px 18px; color: #fff; font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; outline: none; }
+    .search-box::placeholder { color: rgba(255,255,255,.6); }
+    .search-box:focus { border-color: #fff; }
+
+    .main-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* SIN columna ID — 4 columnas */
+    .lb-header { display: grid; grid-template-columns: 55px 1fr 80px 80px 110px; padding: 6px 18px; color: rgba(255,255,255,.8); font-size: .8rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+    .lb-list { display: flex; flex-direction: column; gap: 5px; }
+
+    .row { display: grid; grid-template-columns: 55px 1fr 80px 80px 110px; align-items: center; border-radius: 10px; padding: 12px 18px; position: relative; overflow: hidden; cursor: pointer; transition: transform .15s, box-shadow .15s; animation: fadeUp .35s ease both; }
+    .row:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.22); z-index: 2; }
+    .row.light  { background: rgba(255,255,255,0.88); color: #1a0040; }
+    .row.purp   { background: rgba(160,90,210,0.45);  color: #fff; }
+    .row.selected { box-shadow: 0 0 0 3px rgba(255,255,255,.7) inset; }
+    .row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 10px 0 0 10px; }
+    .row.rank-1::before { background: var(--gold); }
+    .row.rank-2::before { background: var(--silver); }
+    .row.rank-3::before { background: var(--bronze); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
+
+    .rank-num { font-family: 'Bungee', cursive; font-size: 1.3rem; }
+    .row.light .rank-num { color: var(--pink2); }
+    .row.purp  .rank-num { color: rgba(255,255,255,.85); }
+    .rank-num.gold   { color: var(--gold)   !important; }
+    .rank-num.silver { color: var(--silver) !important; }
+    .rank-num.bronze { color: var(--bronze) !important; }
+
+    .nick-cell .nick { font-weight: 900; font-size: 1.05rem; }
+    .nick-cell .etapa { font-size: .75rem; opacity: .6; margin-top: 1px; }
+    .stat-cell { text-align: center; }
+    .stat-cell .val { font-size: 1.05rem; font-weight: 900; }
+    .stat-cell .lbl { font-size: .68rem; letter-spacing: 1px; opacity: .55; text-transform: uppercase; }
+    .pts-cell { font-family: 'Bungee', cursive; font-size: 1.7rem; text-align: right; }
+    .row.light .pts-cell { color: var(--pink2); }
+    .row.purp  .pts-cell { color: var(--yellow); }
+    .row.rank-1 .pts-cell { color: var(--gold); }
+
+    .estado-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+    .estado-Activo    { background: rgba(0,200,100,.25); color: #00e676; border: 1px solid rgba(0,200,100,.4); }
+    .estado-Pendiente { background: rgba(255,180,0,.2);  color: #ffd740; border: 1px solid rgba(255,180,0,.35); }
+    .estado-Eliminado { background: rgba(255,60,60,.2);  color: #ff5252; border: 1px solid rgba(255,60,60,.35); }
+
+    .loading { text-align: center; padding: 60px 20px; color: rgba(255,255,255,.8); font-size: 1.1rem; font-family: 'Bungee', cursive; letter-spacing: 2px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .last-update { text-align: center; color: rgba(255,255,255,.5); font-size: .8rem; margin-top: 14px; }
+
+    .sidebar { display: flex; flex-direction: column; gap: 18px; }
+    .stat-card { background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.35); border-radius: 16px; padding: 20px 22px; color: #fff; }
+    .stat-card h3 { font-family: 'Bungee', cursive; font-size: 1.1rem; letter-spacing: 2px; margin-bottom: 14px; }
+    .trio-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.15); }
+    .trio-stat-row:last-child { border-bottom: none; }
+    .trio-stat-row .sname { color: rgba(255,255,255,.75); font-weight: 600; font-size: .95rem; }
+    .trio-stat-row .sval  { font-family: 'Bungee', cursive; font-size: 1.3rem; }
+
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .donut-container { position: relative; width: 150px; height: 150px; }
+    .donut-svg { transform: rotate(-90deg); }
+    .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .donut-pts { font-family: 'Bungee', cursive; font-size: 2rem; color: #fff; line-height: 1; }
+    .donut-lbl { font-size: .75rem; color: rgba(255,255,255,.6); letter-spacing: 2px; }
+    .donut-legend { width: 100%; display: flex; flex-direction: column; gap: 7px; }
+    .legend-row { display: flex; align-items: center; justify-content: space-between; font-size: .85rem; font-weight: 600; }
+    .legend-left { display: flex; align-items: center; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.3); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="title-block">
+      <h1>WORD CASH CUP</h1>
+      <span class="sub">LEADERBOARD OFICIAL</span>
+    </div>
+    <div class="header-right">
+      <button class="refresh-btn" onclick="loadData()">&#128260; ACTUALIZAR</button>
+      <div class="live-badge"><div class="live-dot"></div>EN VIVO</div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <input class="search-box" type="text" id="searchBox" placeholder="&#128269;  Buscar jugador..." oninput="render()"/>
+  </div>
+
+  <div class="main-grid">
+    <div>
+      <div class="lb-header">
+        <span>#</span>
+        <span>JUGADOR</span>
+        <span style="text-align:center">KILLS</span>
+        <span style="text-align:center">ESTADO</span>
+        <span style="text-align:right">PUNTOS</span>
+      </div>
+      <div class="lb-list" id="lbList">
+        <div class="loading"><div class="spinner"></div>CARGANDO DATOS...</div>
+      </div>
+      <div class="last-update" id="lastUpdate"></div>
+    </div>
+    <div class="sidebar">
+      <div class="stat-card">
+        <h3>&#128202; ESTADISTICAS</h3>
+        <div id="sideStats"><div style="color:rgba(255,255,255,.5);font-size:.9rem;">Selecciona un jugador</div></div>
+      </div>
+      <div class="stat-card">
+        <h3>&#127919; RENDIMIENTO</h3>
+        <div class="donut-wrap" id="donutWrap">
+          <div style="color:rgba(255,255,255,.5);font-size:.9rem;text-align:center;">Selecciona un jugador</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3lMowHbTn_7ucxWQsTO9s78dLdEZ2b6OttcLDDCy0JtZZVH78uizpPGcSBio95geJfyaTayf5CwzH/pub?gid=1788499161&single=true&output=csv';
+  var players = [];
+  var selectedIdx = 0;
+
+  function loadData() {
+    document.getElementById('lbList').innerHTML = '<div class="loading"><div class="spinner"></div>CARGANDO DATOS...</div>';
+
+    if (window.location.protocol === 'file:') {
+      document.getElementById('lbList').innerHTML =
+        '<div class="loading" style="color:#ffd740; font-size:.95rem; line-height:2;">' +
+        '&#9888; Abri el archivo con Live Server en VS Code<br>' +
+        '<span style="font-family:sans-serif; font-size:.85rem; opacity:.8;">' +
+        'Instala la extension Live Server → click derecho en el archivo → Open with Live Server' +
+        '</span></div>';
+      return;
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', CSV_URL, true);
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        players = parseCSV(xhr.responseText);
+        selectedIdx = 0;
+        render();
+        document.getElementById('lastUpdate').textContent =
+          'Ultima actualizacion: ' + new Date().toLocaleTimeString('es-AR');
+      } else {
+        document.getElementById('lbList').innerHTML = '<div class="loading" style="color:#ff6b6b;">ERROR HTTP ' + xhr.status + '</div>';
+      }
+    };
+    xhr.onerror = function() {
+      document.getElementById('lbList').innerHTML = '<div class="loading" style="color:#ff6b6b;">Sin conexion</div>';
+    };
+    xhr.send();
+  }
+
+  function splitLine(line) {
+    var out = [], cur = '', q = false;
+    for (var i = 0; i < line.length; i++) {
+      if (line[i] === '"') { q = !q; }
+      else if (line[i] === ',' && !q) { out.push(cur.trim()); cur = ''; }
+      else { cur += line[i]; }
+    }
+    out.push(cur.trim());
+    return out;
+  }
+
+  function parseCSV(csv) {
+    csv = csv.replace(/^\uFEFF/, '').trim();
+    var lines = csv.split(/\r?\n/);
+    var headers = splitLine(lines[0]);
+    var result = [];
+    for (var i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      var vals = splitLine(lines[i]);
+      var obj = {};
+      for (var j = 0; j < headers.length; j++) {
+        obj[headers[j]] = (vals[j] || '').replace(/^"|"$/g, '').trim();
+      }
+      if (obj.Nick || obj.ID_Jugador) result.push(obj);
+    }
+    return result;
+  }
+
+  function render() {
+    var q = document.getElementById('searchBox').value.toLowerCase();
+    var filtered = players.slice();
+    if (q) {
+      filtered = filtered.filter(function(p) {
+        return (p.Nick||'').toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    filtered.sort(function(a,b) { return (parseInt(b.Puntos_Totales)||0) - (parseInt(a.Puntos_Totales)||0); });
+
+    var list = document.getElementById('lbList');
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="loading" style="opacity:.7;">No se encontraron jugadores</div>';
+      return;
+    }
+    list.innerHTML = '';
+
+    filtered.forEach(function(p, i) {
+      var rank = i + 1;
+      var rankClass  = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'';
+      var numClass   = rank===1?'gold':rank===2?'silver':rank===3?'bronze':'';
+      var variantCls = i%2===0 ? 'light' : 'purp';
+      var origIdx    = players.indexOf(p);
+      var selCls     = origIdx===selectedIdx ? 'selected' : '';
+      var pts        = parseInt(p.Puntos_Totales)||0;
+      var partidas   = parseInt(p.Partidas_Ganadas)||0;
+      var kills      = parseInt(p.Kills)||0;
+      var estadoClass= 'estado-' + (p.Estado||'Pendiente');
+
+      var row = document.createElement('div');
+      row.className = 'row ' + rankClass + ' ' + variantCls + ' ' + selCls;
+      row.style.animationDelay = (i*0.05) + 's';
+      row.innerHTML =
+        '<div class="rank-num ' + numClass + '">#' + rank + '</div>' +
+        '<div class="nick-cell"><div class="nick">' + (p.Nick||'Sin nombre') + '</div><div class="etapa">' + (p.Etapa||'') + '</div></div>' +
+        '<div class="stat-cell"><div class="val">' + kills + '</div><div class="lbl">Kills</div></div>' +
+        '<div class="stat-cell"><span class="estado-badge ' + estadoClass + '">' + (p.Estado||'—') + '</span></div>' +
+        '<div class="pts-cell">' + pts + '</div>';
+      (function(idx){ row.addEventListener('click', function(){ selectedIdx=idx; render(); }); })(origIdx);
+      list.appendChild(row);
+    });
+
+    var sel = players[selectedIdx];
+    if (sel) updateSidebar(sel);
+  }
+
+  function updateSidebar(p) {
+    var pts      = parseInt(p.Puntos_Totales)||0;
+    var partidas = parseInt(p.Partidas_Ganadas)||0;
+    var kills    = parseInt(p.Kills)||0;
+    var kpp = partidas>0 ? (kills/partidas).toFixed(1) : '—';
+    var ppp = partidas>0 ? (pts/partidas).toFixed(1)   : '—';
+
+    document.getElementById('sideStats').innerHTML =
+      '<div class="trio-stat-row"><span class="sname">Nick</span><span class="sval" style="font-size:1rem">' + (p.Nick||'—') + '</span></div>' +
+      '<div class="trio-stat-row"><span class="sname">Etapa</span><span class="sval" style="font-size:1rem">' + (p.Etapa||'—') + '</span></div>' +
+      '<div class="trio-stat-row"><span class="sname">Clasificado</span><span class="sval" style="font-size:1rem">' + (p.Clasificado||'—') + '</span></div>' +
+      '<div class="trio-stat-row"><span class="sname">Partidas Ganadas</span><span class="sval">' + partidas + '</span></div>' +
+      '<div class="trio-stat-row"><span class="sname">Kills</span><span class="sval">' + kills + '</span></div>' +
+      '<div class="trio-stat-row"><span class="sname">Kills / Partida</span><span class="sval">' + kpp + '</span></div>' +
+      '<div class="trio-stat-row"><span class="sname">Puntos Totales</span><span class="sval" style="color:var(--yellow)">' + pts + '</span></div>';
+
+    var total = pts||1, killPts = kills, posPts = Math.max(0, pts - killPts);
+    var kPct = killPts/total, pPct = posPts/total;
+    var r=65, cx=75, cy=75, circ=2*Math.PI*r;
+    var e1=circ*kPct, e2=circ*pPct;
+
+    document.getElementById('donutWrap').innerHTML =
+      '<div class="donut-container">' +
+        '<svg class="donut-svg" width="150" height="150" viewBox="0 0 150 150">' +
+          '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="20"/>' +
+          '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--yellow)" stroke-width="20" stroke-dasharray="'+e1+' '+(circ-e1)+'"/>' +
+          '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="20" stroke-dasharray="'+e2+' '+(circ-e2)+'" stroke-dashoffset="'+(-e1)+'"/>' +
+        '</svg>' +
+        '<div class="donut-center"><div class="donut-pts">'+pts+'</div><div class="donut-lbl">PTS</div></div>' +
+      '</div>' +
+      '<div class="donut-legend">' +
+        '<div class="legend-row"><div class="legend-left"><div class="legend-dot" style="background:var(--yellow)"></div>KILLS</div><div>'+kills+' · '+Math.round(kPct*100)+'%</div></div>' +
+        '<div class="legend-row"><div class="legend-left"><div class="legend-dot" style="background:rgba(255,255,255,.5)"></div>POSICION</div><div>'+posPts+' pts · '+Math.round(pPct*100)+'%</div></div>' +
+      '</div>';
+  }
+
+  loadData();
+  setInterval(loadData, 60000);
+</script>
+</body>
+</html>
